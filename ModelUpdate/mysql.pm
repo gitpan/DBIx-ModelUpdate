@@ -156,6 +156,8 @@ sub update_column {
 		and $existing_def eq $column_def
 	;
 	
+	$c_definition -> {_PK} = 0 if ($existing_column -> {_PK} == 1);
+
 	my $sql = "ALTER TABLE $name CHANGE $c_name " . $self -> gen_column_definition ($c_name, $c_definition);
 	
 	$self -> do ($sql);

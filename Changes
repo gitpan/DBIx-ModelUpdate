@@ -1,3 +1,7 @@
+0.3:
+	
+	- fix for safe PK field renaming (should we ever do it?!!) by pashka;  
+
 0.2: 
 	- adder support for keys;
 	- added support for DECIMAL_DIGITS;
