@@ -4,7 +4,7 @@ use 5.005;
 
 require Exporter;
 
-our $VERSION = '0.63';
+our $VERSION = '0.64';
 
 use Data::Dumper;
 use Storable    ('freeze', 'dclone');

@@ -38,7 +38,7 @@ SKIP: {
 			name => {
 				TYPE_NAME    => 'varchar',
 				COLUMN_SIZE  => 50,
-#				COLUMN_DEF   => 'New user',
+				COLUMN_DEF   => 'New user',
 				NULLABLE     => 0,
 			},
 

@@ -69,6 +69,11 @@ sub get_columns {
 	
 		my $r = {};
 		
+		if ($def =~ /DEFAULT/gism) {
+			$def =~ s/\s*DEFAULT\s*\'(.*?)\'\s*//gism;
+			$r -> {COLUMN_DEF} = $1;
+		}
+
 		if ($def =~ /PRIMARY\s+KEY/gism) {
 			$r -> {_PK} = 1;
 			$def =~ s/\s*PRIMARY\s+KEY\s*//gism;
