@@ -40,7 +40,7 @@ EOS
 		my $name = lc $r -> {INDEX_NAME};
 		$name =~ s/^${table_name}_//;
 		
-		next if $name eq PRIMARY;
+		next if $name eq 'PRIMARY';
 		
 		my $column = lc $r -> {COLUMN_NAME};
 		
@@ -134,7 +134,7 @@ EOS
 		
 #		$r -> {_EXTRA} = $r -> {Extra} if $r -> {Extra};
 		$r -> {_PK} = 1 if $name eq $pk_column;
-		$r -> {NULLABLE} = $r -> {Null} eq YES ? 1 : 0;
+		$r -> {NULLABLE} = $r -> {Null} eq 'YES' ? 1 : 0;
 		map {delete $r -> {$_}} grep {/[a-z]/} keys %$r;
 		$fields -> {$name} = $r;
 	

@@ -1,13 +1,13 @@
 package DBIx::ModelUpdate;
 
-use 5.006;
+use 5.005;
 
 require Exporter;
 
-our $VERSION = '0.6';
+our $VERSION = '0.61';
 
 use Data::Dumper;
-use Storable    'freeze';
+use Storable    ('freeze', 'dclone');
 use Digest::MD5 'md5_base64';
 
 no strict;
@@ -121,7 +121,7 @@ sub assert {
 	
 		while (my ($dc_name, $dc_definition) = each %{$params {default_columns}}) {
 			
-			$definition -> {columns} -> {$dc_name} ||= $dc_definition;
+			$definition -> {columns} -> {$dc_name} ||= dclone ($dc_definition);
 			
 		};
 
@@ -183,10 +183,11 @@ sub assert {
 		
 	}
 	
-	$serial =~ s{\'}{\\\'}g;
+	$serial =~ s{\'}{\\\'}g; #'
 	
 	$self -> do ("INSERT INTO _db_model_checksums (checksum) VALUES ('$checksum')");
-
+	
+#print STDERR Dumper (\%params);
 			
 }
 

@@ -30,7 +30,7 @@ sub get_keys {
 		
 		my $name = $r -> {Key_name};
 		
-		next if $name eq PRIMARY;
+		next if $name eq 'PRIMARY';
 		
 		my $column = $r -> {Column_name};
 		
@@ -75,8 +75,8 @@ sub get_columns {
 		$r -> {DECIMAL_DIGITS} = $2 if defined $2;
 		$r -> {COLUMN_DEF} = $r -> {Default} if $r -> {Default};
 		$r -> {_EXTRA} = $r -> {Extra} if $r -> {Extra};
-		$r -> {_PK} = 1 if $r -> {Key} eq PRI;
-		$r -> {NULLABLE} = $r -> {Null} eq YES ? 1 : 0;
+		$r -> {_PK} = 1 if $r -> {Key} eq 'PRI';
+		$r -> {NULLABLE} = $r -> {Null} eq 'YES' ? 1 : 0;
 		map {delete $r -> {$_}} grep {/[a-z]/} keys %$r;
 		$fields -> {$name} = $r;
 	
