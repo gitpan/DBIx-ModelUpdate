@@ -6,13 +6,18 @@ require Exporter;
 
 our $VERSION = '0.3';
 
+use Data::Dumper;
+
+no strict;
+no warnings;
+
 ################################################################################
 
 sub is_implemented {
 
 	my ($driver_name) = @_;
 	
-	return $driver_name eq 'mysql';
+	return $driver_name eq 'mysql' || $driver_name eq 'Oracle';
 
 }
 
@@ -53,7 +58,7 @@ sub new {
 sub unquote_table_name {
 	my ($name) = @_;
 	$name =~ s{\W}{}g;
-	return $name;
+	return lc $name;
 }
 
 ################################################################################
@@ -83,7 +88,7 @@ sub assert {
 	my $needed_tables = $params {tables};
 	
 	my $existing_tables = $self -> get_tables;	
-				
+	
 	while (my ($name, $definition) = each %$needed_tables) {
 	
 		while (my ($dc_name, $dc_definition) = each %{$params {default_columns}}) {
@@ -115,6 +120,8 @@ sub assert {
 
 			};
 				
+			$self -> add_columns ($name, $new_columns) if keys %$new_columns;
+
 			while (my ($k_name, $k_definition) = each %{$definition -> {keys}}) {
 			
 				$k_definition -> {columns} =~ s{\s+}{}g;			
@@ -137,8 +144,6 @@ sub assert {
 
 			};
 
-			$self -> add_columns ($name, $new_columns) if keys %$new_columns;
-
 		}
 		else {
 		
@@ -146,7 +151,7 @@ sub assert {
 			
 		}
 
-		map { $self -> insert_or_update ($name, $_) } @{$definition -> {data}} if $definition -> {data};
+		map { $self -> insert_or_update ($name, $_, $definition) } @{$definition -> {data}} if $definition -> {data};
 		
 	}
 			

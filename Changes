@@ -1,3 +1,8 @@
+0.4:
+	
+	- added support for Oracle;
+	- fixed columns/indexes ceation order;
+
 0.3:
 	
 	- fix for safe PK field renaming (should we ever do it?!!) by pashka;  
