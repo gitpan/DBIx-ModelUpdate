@@ -1,3 +1,7 @@
+0.5:
+
+	- unquote_table_name fixed for case sensitivity in MySQL;
+
 0.4:
 	
 	- added support for Oracle;
