@@ -1,3 +1,7 @@
+0.62:
+
+	- in-memory sum checking;
+
 0.61:
 
 	- dclone'ing default columns;

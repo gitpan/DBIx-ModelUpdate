@@ -4,7 +4,7 @@ use 5.005;
 
 require Exporter;
 
-our $VERSION = '0.61';
+our $VERSION = '0.62';
 
 use Data::Dumper;
 use Storable    ('freeze', 'dclone');
@@ -51,7 +51,7 @@ sub new {
 	
 	die $@ if $@;
 	
-	bless ({db => $db, @options}, $package_name);
+	bless ({db => $db, checksums => 1, @options}, $package_name);
 
 }
 
@@ -86,26 +86,20 @@ sub get_tables {
 sub assert {
 
 	my ($self, %params) = @_;
-	
+
 	$Storable::canonical = 1;
-	
+
 	my $serial = freeze (\%params);
 
-#	my $serial = Dumper (\%params);
-	
-#	my $checksum = md5_base64 (freeze (\%params));
-	
 	my $checksum = md5_base64 ($serial);
 	
-	my $needed_tables = $params {tables};
+	return if $self -> {checksums} -> {$checksum};
 	
-	my $existing_tables = $self -> get_tables;	
-	
+	my $existing_tables = $self -> get_tables;
+
 	unless (exists $existing_tables -> {'_db_model_checksums'}) {
-	
 		$self -> do ('CREATE TABLE _db_model_checksums (checksum CHAR(22))');
 		$self -> do ('CREATE INDEX _db_model_checksums_pk ON _db_model_checksums (checksum)');
-	
 	} else {
 	
 		my $st = $self -> {db} -> prepare ('SELECT COUNT(*) FROM _db_model_checksums WHERE checksum = ?');
@@ -116,6 +110,8 @@ sub assert {
 		return if $cnt;
 	
 	}
+
+	my $needed_tables = $params {tables};
 	
 	while (my ($name, $definition) = each %$needed_tables) {
 	
@@ -186,6 +182,8 @@ sub assert {
 	$serial =~ s{\'}{\\\'}g; #'
 	
 	$self -> do ("INSERT INTO _db_model_checksums (checksum) VALUES ('$checksum')");
+	
+	$self -> {checksums} -> {$checksum} = 1;
 	
 #print STDERR Dumper (\%params);
 			

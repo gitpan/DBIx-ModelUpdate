@@ -16,13 +16,25 @@ sub unquote_table_name {
 
 ################################################################################
 
+sub prepare {
+
+	my ($self, $sql) = @_;
+	
+print STDERR "prepare (pid=$$): $sql\n";
+
+	return $self -> {db} -> prepare ($sql);
+
+}
+
+################################################################################
+
 sub get_keys {
 
 	my ($self, $table_name) = @_;
 	
 	my $keys = {};
 	
-	my $st = $self -> {db} -> prepare (<<EOS);
+	my $st = $self -> prepare (<<EOS);
 		SELECT 
 			* 
 		FROM 
@@ -59,28 +71,33 @@ EOS
 
 }
 
-
-
-
-
 ################################################################################
 
 sub get_tables {
 
 	my ($self, $options) = @_;
 	
-	my $st = $self -> {db} -> prepare ("SELECT table_name FROM user_tables");
-	$st -> execute ();
+	my $st = $self -> prepare ("SELECT table_name FROM user_tables");
+	$st -> execute;
 	my $tables = {};
 	
 	while (my $r = $st -> fetchrow_hashref) {
 		my $name = lc ($r -> {TABLE_NAME});
 		$name =~ s{\W}{}g;
 		$tables -> {$name} = {
-			columns => $self -> get_columns ($name, $options), 
-			keys => $self -> get_keys ($name),
+#			columns => $self -> get_columns ($name, $options), 
+#			keys => $self -> get_keys ($name),
 		}
 	}	
+
+	$st -> finish;
+
+print STDERR "get_tables (pid=$$): $tables = " . Dumper ($tables);
+	
+	foreach my $name (keys %$tables) {
+		$tables -> {$name} -> {columns} = $self -> get_columns ($name, $options);
+		$tables -> {$name} -> {keys}    = $self -> get_keys ($name);
+	}
 	
 	return $tables;
 
@@ -94,49 +111,64 @@ sub get_columns {
 	
 	$options -> {default_columns} ||= {};
 	
-	my $st = $st = $self -> {db} -> prepare (<<EOS);
-		SELECT
-			user_ind_columns.COLUMN_NAME   
-		FROM 
-			user_constraints
-			, user_ind_columns  
-		WHERE
-			user_ind_columns.INDEX_NAME = user_constraints.CONSTRAINT_NAME  
-			and user_constraints.constraint_type = 'P' 
-			and user_constraints.table_name = ?
-EOS
+	my $uc_table_name = uc $table_name;
 	
-	$st -> execute (uc $table_name);
-	my ($pk_column) = $st -> fetchrow_array;
-	$st -> finish;
-	$pk_column = lc $pk_column;
+#	my $st = $st = $self -> prepare (<<EOS);
+#		SELECT
+#			user_ind_columns.COLUMN_NAME   
+#		FROM 
+#			user_constraints
+#			, user_ind_columns  
+#		WHERE
+#			user_ind_columns.INDEX_NAME = user_constraints.CONSTRAINT_NAME  
+#			and user_constraints.constraint_type = 'P' 
+#			and user_constraints.table_name = ?
+#EOS
+#	
+#	my $pk_column;
+#	$st -> execute (uc $table_name);
+#	while (($pk_column) = $st -> fetchrow_array) {
+#print STDERR "get_columns (pid=$$): \$pk_column=$pk_column\n";
+#	};
+##	$st -> finish;
+#	$pk_column = lc $pk_column;
+		
+	$pk_column = 'id';
 		
 	my $fields = {};
 	
-	my $st = $self -> {db} -> prepare ("select * from USER_TAB_COLUMNS WHERE table_name = ?");	
-	$st -> execute (uc $table_name);
+print STDERR "get_columns (pid=$$): \$table_name=$table_name\n";
 
+#	my $st = $self -> prepare ("select * from user_tab_columns WHERE table_name = '$uc_table_name'");
+	
+	my $st = $self -> {db} -> column_info ('', $db -> {Username}, $uc_table_name, '');
+	$st -> execute ();
+
+#	$st -> execute (uc $table_name);
+print STDERR "get_columns (pid=$$): execute completed\n";
 		
 	while (my $r = $st -> fetchrow_hashref) {
+		
+		$fields -> {lc $r -> {COLUMN_NAME}} = $r;
 	
-		my $name = lc $r -> {COLUMN_NAME};
-		next if $options -> {default_columns} -> {$name};
-		
-		$r -> {TYPE_NAME} = $r -> {DATA_TYPE};
-		$r -> {COLUMN_SIZE} = $r -> {DATA_LENGTH};
-		$r -> {DECIMAL_DIGITS} = $r -> {DATA_PRECISION};
-		
-		if ($r -> {DATA_DEFAULT}) {
-			$r -> {COLUMN_DEF} = $r -> {DATA_DEFAULT};
-			$r -> {COLUMN_DEF} =~ s{^\'}{};
-			$r -> {COLUMN_DEF} =~ s{\'$}{};
-		}
-		
+#		my $name = lc $r -> {COLUMN_NAME};
+#		next if $options -> {default_columns} -> {$name};
+#		
+#		$r -> {TYPE_NAME} = $r -> {DATA_TYPE};
+#		$r -> {COLUMN_SIZE} = $r -> {DATA_LENGTH};
+#		$r -> {DECIMAL_DIGITS} = $r -> {DATA_PRECISION};
+#		
+#		if ($r -> {DATA_DEFAULT}) {
+#			$r -> {COLUMN_DEF} = $r -> {DATA_DEFAULT};
+#			$r -> {COLUMN_DEF} =~ s{^\'}{};
+#			$r -> {COLUMN_DEF} =~ s{\'$}{};
+#		}
+#		
 #		$r -> {_EXTRA} = $r -> {Extra} if $r -> {Extra};
-		$r -> {_PK} = 1 if $name eq $pk_column;
-		$r -> {NULLABLE} = $r -> {Null} eq 'YES' ? 1 : 0;
-		map {delete $r -> {$_}} grep {/[a-z]/} keys %$r;
-		$fields -> {$name} = $r;
+#		$r -> {_PK} = 1 if $name eq $pk_column;
+#		$r -> {NULLABLE} = $r -> {Null} eq 'YES' ? 1 : 0;
+#		map {delete $r -> {$_}} grep {/[a-z]/} keys %$r;
+#		$fields -> {$name} = $r;
 	
 	}
 	
@@ -289,7 +321,7 @@ sub insert_or_update {
 	
 	my $pk_column = 'id';
 	
-	my $st = $self -> {db} -> prepare ("SELECT * FROM $name WHERE $pk_column = ?");
+	my $st = $self -> prepare ("SELECT * FROM $name WHERE $pk_column = ?");
 	$st -> execute ($data -> {$pk_column});
 	my $existing_data = $st -> fetchrow_hashref;
 	$st -> finish;
