@@ -3,6 +3,7 @@ use Test::More tests => 6;
 use DBI;
 
 use DBIx::ModelUpdate;
+use Storable ('dclone');
 
 $| = 1;
 
@@ -17,12 +18,67 @@ SKIP: {
 	ok ($db && $db -> ping (), 'Connected');
 	$db -> {RaiseError} = 1;
 	
-	my $update = DBIx::ModelUpdate -> new ($db, dump_to_stderr => 0);
+	my $update = DBIx::ModelUpdate -> new (
+		$db, 
+		dump_to_stderr => 0, 
+		before_assert => sub {
+		
+			my ($self, %params) = @_;
+			
+			my $needed_tables = $params {tables};
+			
+		
+			while (my ($name, $definition) = each %$needed_tables) {
+
+				next if $name =~ /^__log_/;
+
+				my $log_def = dclone ($definition);
+
+				delete $log_def -> {columns} -> {id} -> {_EXTRA};
+				delete $log_def -> {columns} -> {id} -> {_PK};
+				$log_def -> {columns} -> {id} -> {TYPE_NAME} ||= 'int';
+
+				delete $log_def -> {data};
+
+				$log_def -> {columns} -> {__dt} = {
+					TYPE_NAME => 'datetime',
+				};
+
+				$log_def -> {columns} -> {__id} = {
+					TYPE_NAME  => 'int', 
+					_EXTRA => 'auto_increment', 
+					_PK    => 1,
+				};
+
+				$log_def -> {columns} -> {__op} = {
+					TYPE_NAME  => 'int', 
+				};
+
+				$log_def -> {columns} -> {__id_log} = {
+					TYPE_NAME  => 'int', 
+				};
+
+				$params {tables} -> {'__log_' . $name} = $log_def;			
+
+			}
+			
+		}
+		
+	);
+	
+	
+	
+	
+	
+	
+	
 	ok ($update, 'Object created');
 	
 	$db -> do ('DROP TABLE IF EXISTS _db_model_checksums');
 	$db -> do ('DROP TABLE IF EXISTS users');
 	$db -> do ('DROP TABLE IF EXISTS sex');
+	$db -> do ('DROP TABLE IF EXISTS __log_users');
+	$db -> do ('DROP TABLE IF EXISTS __log_sex');
 	
 	my $users = {
 	
@@ -124,6 +180,8 @@ SKIP: {
 
 	$db -> do ('DROP TABLE users');
 	$db -> do ('DROP TABLE sex');
+	$db -> do ('DROP TABLE __log_users');
+	$db -> do ('DROP TABLE __log_sex');
 	$db -> do ('DROP TABLE _db_model_checksums');
 
 	$db -> disconnect;

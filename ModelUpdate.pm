@@ -4,7 +4,7 @@ use 5.005;
 
 require Exporter;
 
-our $VERSION = '0.64';
+our $VERSION = '0.65';
 
 use Data::Dumper;
 use Storable    ('freeze', 'dclone');
@@ -61,14 +61,6 @@ sub new {
 }
 
 ################################################################################
-#
-#sub unquote_table_name {
-#	my ($name) = @_;
-#	$name =~ s{\W}{}g;
-#	return lc $name;
-#}
-
-################################################################################
 
 sub get_tables {
 
@@ -115,8 +107,12 @@ sub assert {
 		return if $cnt;
 	
 	}
-
+			
+	&{$self -> {before_assert}} (@_) if ref $self -> {before_assert} eq CODE;		
+	
 	my $needed_tables = $params {tables};
+		
+#print STDERR Dumper ($needed_tables);
 	
 	while (my ($name, $definition) = each %$needed_tables) {
 	
