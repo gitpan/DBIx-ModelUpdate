@@ -4,7 +4,7 @@ use 5.005;
 
 require Exporter;
 
-our $VERSION = '0.62';
+our $VERSION = '0.63';
 
 use Data::Dumper;
 use Storable    ('freeze', 'dclone');
@@ -19,7 +19,7 @@ sub is_implemented {
 
 	my ($driver_name) = @_;
 	
-	return $driver_name eq 'mysql' || $driver_name eq 'Oracle';
+	return $driver_name eq 'mysql' || $driver_name eq 'Oracle' || $driver_name eq 'SQLite';
 
 }
 
@@ -28,9 +28,7 @@ sub is_implemented {
 sub do {
 
 	my ($self, $sql) = @_;
-	
-	print STDERR $sql, "\n" if $self -> {dump_to_stderr};
-	
+	print STDERR $sql, "\n" if $self -> {dump_to_stderr};	
 	$self -> {db} -> do ($sql);
 
 }
@@ -51,7 +49,14 @@ sub new {
 	
 	die $@ if $@;
 	
-	bless ({db => $db, checksums => 1, @options}, $package_name);
+	my $self = bless ({db => $db, checksums => 1, @options}, $package_name);
+	
+	if ($driver_name eq 'SQLite') {
+		require DBIx::MySQLite;
+		DBIx::MySQLite::add_all_functions ($db);
+	}
+
+	return $self;	
 
 }
 
@@ -93,7 +98,7 @@ sub assert {
 
 	my $checksum = md5_base64 ($serial);
 	
-	return if $self -> {checksums} -> {$checksum};
+	return if exists $self -> {checksums} -> {$checksum};
 	
 	my $existing_tables = $self -> get_tables;
 
@@ -180,7 +185,7 @@ sub assert {
 	}
 	
 	$serial =~ s{\'}{\\\'}g; #'
-	
+		
 	$self -> do ("INSERT INTO _db_model_checksums (checksum) VALUES ('$checksum')");
 	
 	$self -> {checksums} -> {$checksum} = 1;

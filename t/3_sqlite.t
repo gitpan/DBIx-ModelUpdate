@@ -4,23 +4,22 @@ use DBI;
 
 use DBIx::ModelUpdate;
 
+$| = 1;
+
 SKIP: {
 
-	eval { require DBD::mysql };
+	eval { require DBD::SQLite };
 	
-	skip "DBD::mysql not installed", 6 if $@;
+	skip "DBD::SQLite not installed", 6 if $@;
 	
-	my $db = DBI -> connect ('DBI:mysql:test', 'test', '');
+	my $db = DBI -> connect ("DBI:SQLite:dbname=/tmp/test.sqlite", '', '', {RaiseError => 1});
 	
 	ok ($db && $db -> ping (), 'Connected');
 	$db -> {RaiseError} = 1;
 	
-	my $update = DBIx::ModelUpdate -> new ($db, dump_to_stderr => 1);
+	my $update = DBIx::ModelUpdate -> new ($db, dump_to_stderr => 0);
 	ok ($update, 'Object created');
-	
-	$db -> do ('DROP TABLE IF EXISTS users');
-	$db -> do ('DROP TABLE IF EXISTS sex');
-	
+		
 	my $users = {
 	
 		columns => {
@@ -39,7 +38,7 @@ SKIP: {
 			name => {
 				TYPE_NAME    => 'varchar',
 				COLUMN_SIZE  => 50,
-				COLUMN_DEF   => 'New user',
+#				COLUMN_DEF   => 'New user',
 				NULLABLE     => 0,
 			},
 
@@ -80,7 +79,6 @@ SKIP: {
 
 			id => {
 				TYPE_NAME  => 'int',
-				_EXTRA => 'auto_increment',
 				_PK    => 1,
 				COLUMN_SIZE  => 11,
 				NULLABLE  => 0,
@@ -121,7 +119,8 @@ SKIP: {
 
 	$db -> do ('DROP TABLE users');
 	$db -> do ('DROP TABLE sex');
+	$db -> do ('DROP TABLE _db_model_checksums');
 
-	$db -> disconnect;	
-	
+	$db -> disconnect;
+		
 }

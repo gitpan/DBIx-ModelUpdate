@@ -1,3 +1,7 @@
+0.63:
+
+	- SQLite support added;
+
 0.62:
 
 	- in-memory sum checking;

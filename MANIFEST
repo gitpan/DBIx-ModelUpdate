@@ -2,6 +2,11 @@ Changes
 Makefile.PL
 MANIFEST
 ModelUpdate.pm
+MySQLite.pm
 README
-t/use.t
-t/mysql.t
+t/1_use.t
+t/2_mysql.t
+t/3_sqlite.t
+ModelUpdate/mysql.pm
+ModelUpdate/Oracle.pm
+ModelUpdate/SQLite.pm
