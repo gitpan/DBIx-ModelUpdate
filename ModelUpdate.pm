@@ -4,9 +4,11 @@ use 5.006;
 
 require Exporter;
 
-our $VERSION = '0.5';
+our $VERSION = '0.6';
 
 use Data::Dumper;
+use Storable    'freeze';
+use Digest::MD5 'md5_base64';
 
 no strict;
 no warnings;
@@ -85,9 +87,35 @@ sub assert {
 
 	my ($self, %params) = @_;
 	
+	$Storable::canonical = 1;
+	
+	my $serial = freeze (\%params);
+
+#	my $serial = Dumper (\%params);
+	
+#	my $checksum = md5_base64 (freeze (\%params));
+	
+	my $checksum = md5_base64 ($serial);
+	
 	my $needed_tables = $params {tables};
 	
 	my $existing_tables = $self -> get_tables;	
+	
+	unless (exists $existing_tables -> {'_db_model_checksums'}) {
+	
+		$self -> do ('CREATE TABLE _db_model_checksums (checksum CHAR(22))');
+		$self -> do ('CREATE INDEX _db_model_checksums_pk ON _db_model_checksums (checksum)');
+	
+	} else {
+	
+		my $st = $self -> {db} -> prepare ('SELECT COUNT(*) FROM _db_model_checksums WHERE checksum = ?');
+		$st -> execute ($checksum);
+		my ($cnt) = $st -> fetchrow_array;
+		$st -> finish;
+		
+		return if $cnt;
+	
+	}
 	
 	while (my ($name, $definition) = each %$needed_tables) {
 	
@@ -154,6 +182,11 @@ sub assert {
 		map { $self -> insert_or_update ($name, $_, $definition) } @{$definition -> {data}} if $definition -> {data};
 		
 	}
+	
+	$serial =~ s{\'}{\\\'}g;
+	
+	$self -> do ("INSERT INTO _db_model_checksums (checksum) VALUES ('$checksum')");
+
 			
 }
 

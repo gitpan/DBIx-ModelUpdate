@@ -13,7 +13,7 @@
 #	ABSTRACT_FROM => q[ModelUpdate.pm]
 #	AUTHOR => q[D. Ovsyanko <do@zanas.ru>]
 #	NAME => q[DBIx::ModelUpdate]
-#	PREREQ_PM => { Test::More=>q[0.47], DBI=>q[1.21] }
+#	PREREQ_PM => { Storable=>q[], Digest::MD5=>q[], Test::More=>q[0.47], DBI=>q[1.21] }
 #	VERSION_FROM => q[ModelUpdate.pm]
 
 # --- MakeMaker post_initialize section:
@@ -49,9 +49,9 @@ AR_STATIC_ARGS = cr
 NAME = DBIx::ModelUpdate
 DISTNAME = DBIx-ModelUpdate
 NAME_SYM = DBIx_ModelUpdate
-VERSION = 0.5
-VERSION_SYM = 0_5
-XS_VERSION = 0.5
+VERSION = 0.6
+VERSION_SYM = 0_6
+XS_VERSION = 0.6
 INST_BIN = blib/bin
 INST_EXE = blib/script
 INST_LIB = blib/lib
@@ -682,7 +682,7 @@ testdb_static :: testdb_dynamic
 # --- MakeMaker ppd section:
 # Creates a PPD (Perl Package Description) for a binary distribution.
 ppd:
-	@$(PERL) -e "print qq{<SOFTPKG NAME=\"DBIx-ModelUpdate\" VERSION=\"0,5,0,0\">\n}. qq{\t<TITLE>DBIx-ModelUpdate</TITLE>\n}. qq{\t<ABSTRACT>tool for check/update database schema</ABSTRACT>\n}. qq{\t<AUTHOR>D. Ovsyanko &lt;do\@zanas.ru&gt;</AUTHOR>\n}. qq{\t<IMPLEMENTATION>\n}. qq{\t\t<DEPENDENCY NAME=\"DBI\" VERSION=\"1,21,0,0\" />\n}. qq{\t\t<DEPENDENCY NAME=\"Test-More\" VERSION=\"0,47,0,0\" />\n}. qq{\t\t<OS NAME=\"$(OSNAME)\" />\n}. qq{\t\t<ARCHITECTURE NAME=\"i386-linux\" />\n}. qq{\t\t<CODEBASE HREF=\"\" />\n}. qq{\t</IMPLEMENTATION>\n}. qq{</SOFTPKG>\n}" > DBIx-ModelUpdate.ppd
+	@$(PERL) -e "print qq{<SOFTPKG NAME=\"DBIx-ModelUpdate\" VERSION=\"0,6,0,0\">\n}. qq{\t<TITLE>DBIx-ModelUpdate</TITLE>\n}. qq{\t<ABSTRACT>tool for check/update database schema</ABSTRACT>\n}. qq{\t<AUTHOR>D. Ovsyanko &lt;do\@zanas.ru&gt;</AUTHOR>\n}. qq{\t<IMPLEMENTATION>\n}. qq{\t\t<DEPENDENCY NAME=\"DBI\" VERSION=\"1,21,0,0\" />\n}. qq{\t\t<DEPENDENCY NAME=\"Digest-MD5\" VERSION=\"0,0,0,0\" />\n}. qq{\t\t<DEPENDENCY NAME=\"Storable\" VERSION=\"0,0,0,0\" />\n}. qq{\t\t<DEPENDENCY NAME=\"Test-More\" VERSION=\"0,47,0,0\" />\n}. qq{\t\t<OS NAME=\"$(OSNAME)\" />\n}. qq{\t\t<ARCHITECTURE NAME=\"i386-linux\" />\n}. qq{\t\t<CODEBASE HREF=\"\" />\n}. qq{\t</IMPLEMENTATION>\n}. qq{</SOFTPKG>\n}" > DBIx-ModelUpdate.ppd
 
 # --- MakeMaker pm_to_blib section:
 

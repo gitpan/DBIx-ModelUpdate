@@ -5,6 +5,8 @@ WriteMakefile(
     'PREREQ_PM'		=> {
 	'DBI'			=> '1.21',
 	'Test::More'		=> '0.47',
+	'Storable'		=> '',
+	'Digest::MD5'		=> '',
     }, 
     ($] >= 5.005 ? 
       (ABSTRACT_FROM => 'ModelUpdate.pm', 
