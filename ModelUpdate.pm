@@ -4,7 +4,7 @@ use 5.006;
 
 require Exporter;
 
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 ################################################################################
 
@@ -18,9 +18,21 @@ sub is_implemented {
 
 ################################################################################
 
+sub do {
+
+	my ($self, $sql) = @_;
+	
+	print STDERR $sql, "\n" if $self -> {dump_to_stderr};
+	
+	$self -> {db} -> do ($sql);
+
+}
+
+################################################################################
+
 sub new {
 
-	my ($package_name, $db) = @_;
+	my ($package_name, $db, @options) = @_;
 	
 	my $driver_name = $db -> {Driver} -> {Name};
 	
@@ -32,7 +44,7 @@ sub new {
 	
 	die $@ if $@;
 	
-	bless ({db => $db}, $package_name);
+	bless ({db => $db, @options}, $package_name);
 
 }
 
@@ -52,7 +64,7 @@ sub get_tables {
 	
 	return { 
 		map { 
-			$_ => { columns => $self -> get_columns ($_, $options) } 
+			$_ => { columns => $self -> get_columns ($_, $options), keys => $self -> get_keys ($_) } 
 		} 
 		map {
 			unquote_table_name ($_)
@@ -103,6 +115,28 @@ sub assert {
 
 			};
 				
+			while (my ($k_name, $k_definition) = each %{$definition -> {keys}}) {
+			
+				$k_definition -> {columns} =~ s{\s+}{}g;			
+			
+				if (
+					$existing_tables -> {$name} 
+					&& $existing_tables -> {$name} -> {keys} -> {$k_name}
+				) {
+				
+					if ($existing_tables -> {$name} -> {keys} -> {$k_name} -> {columns} ne $k_definition) {
+						$self -> drop_index ($name, $k_name);
+					}
+					else {
+						next;
+					}
+				
+				}						
+				
+				$self -> create_index ($name, $k_name, $k_definition);
+
+			};
+
 			$self -> add_columns ($name, $new_columns) if keys %$new_columns;
 
 		}
@@ -341,6 +375,70 @@ It's very clear that each entity table in my schema has the same C<id> field, so
 					},
 
 				},
+							
+			},
+
+			sex => {
+				
+				columns => {
+
+					name => {
+						TYPE_NAME    => 'varchar',
+						COLUMN_SIZE  => 1,
+					},
+
+				},
+							
+			},
+
+		},
+  
+	); 
+
+=head2 INDEXING
+
+The next example shows how to index your tables:
+
+	$update -> assert (
+	
+		default_columns => {
+
+			id => {
+				TYPE_NAME  => 'int',
+				_EXTRA => 'auto_increment',
+				_PK    => 1,
+			},
+
+		},	
+  
+		tables => {		
+		
+			users => {
+				
+				columns => {
+
+					name => {
+						TYPE_NAME    => 'varchar',
+						COLUMN_SIZE  => 50,
+						COLUMN_DEF   => 'New user',
+					},
+
+					password => {
+						TYPE_NAME    => 'varchar',
+						COLUMN_SIZE  => 255,
+					},
+
+					id_sex => {
+						TYPE_NAME  => 'int',
+					},
+
+				},
+				
+				keys => {
+				
+					fk_id_sex => 'id_sex'
+				
+				}
 							
 			},
 

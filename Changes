@@ -1,3 +1,9 @@
+0.2: 
+	- adder support for keys;
+	- added support for DECIMAL_DIGITS;
+	- fixed occasional ALTERs caused by MySQL's silent column changes;
+	- added dump_to_stderr option;
+
 0.1: 16.12.03 12:30
-	- first public version
+	- first public version;
 

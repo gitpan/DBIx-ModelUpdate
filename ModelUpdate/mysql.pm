@@ -8,6 +8,41 @@ our @ISA = qw (DBIx::ModelUpdate);
 
 ################################################################################
 
+sub get_keys {
+
+	my ($self, $table_name) = @_;
+	
+	my $keys = {};
+	
+	my $st = $self -> {db} -> prepare ("SHOW KEYS FROM $table_name");
+	
+	$st -> execute ();
+		
+	while (my $r = $st -> fetchrow_hashref) {
+		
+		my $name = $r -> {Key_name};
+		
+		next if $name eq PRIMARY;
+		
+		my $column = $r -> {Column_name};
+		
+		$column .= '(' . $r -> {Sub_part} . ')' if $r -> {Sub_part};
+
+		if (exists $keys -> {$name}) {
+			$keys -> {$name} -> {columns} .= ',' . $column;
+		}
+		else {
+			$keys -> {$name} = {columns => $column};
+		}
+	
+	}
+	
+	return $keys;
+
+}
+
+################################################################################
+
 sub get_columns {
 
 	my ($self, $table_name, $options) = @_;
@@ -27,8 +62,9 @@ sub get_columns {
 		
 		$r -> {Type} =~ /^\w+/;
 		$r -> {TYPE_NAME} = $&;
-		$r -> {Type} =~ /\d+/;
-		$r -> {COLUMN_SIZE} = $&;
+		$r -> {Type} =~ /(\d+)(?:\,(\d+))?/;
+		$r -> {COLUMN_SIZE} = $1;
+		$r -> {DECIMAL_DIGITS} = $2 if defined $2;
 		$r -> {COLUMN_DEF} = $r -> {Default} if $r -> {Default};
 		$r -> {_EXTRA} = $r -> {Extra} if $r -> {Extra};
 		$r -> {_PK} = 1 if $r -> {Key} eq PRI;
@@ -51,7 +87,13 @@ sub gen_column_definition {
 	$definition -> {NULLABLE} = 1 unless defined $definition -> {NULLABLE};
 
 	my $sql = " $name $$definition{TYPE_NAME}";
-	$sql .= ' (' . $definition -> {COLUMN_SIZE} . ')' if $definition -> {COLUMN_SIZE};
+		
+	if ($definition -> {COLUMN_SIZE}) {	
+		$sql .= ' (' . $definition -> {COLUMN_SIZE};		
+		$sql .= ',' . $definition -> {DECIMAL_DIGITS} if $definition -> {DECIMAL_DIGITS};		
+		$sql .= ')';	
+	}
+	
 	$sql .= ' ' . $definition -> {_EXTRA} if $definition -> {_EXTRA};
 	$sql .= ' NOT NULL' unless $definition -> {NULLABLE};
 	$sql .= ' PRIMARY KEY' if $definition -> {_PK};
@@ -69,7 +111,7 @@ sub create_table {
 	
 	my $sql = "CREATE TABLE $name (\n  " . (join "\n ,", map {$self -> gen_column_definition ($_, $definition -> {columns} -> {$_})} keys %{$definition -> {columns}}) . "\n)\n";
 			
-	$self -> {db} -> do ($sql);
+	$self -> do ($sql);
 
 }
 
@@ -81,9 +123,23 @@ sub add_columns {
 	
 	my $sql = "ALTER TABLE $name ADD (\n  " . (join "\n ,", map {$self -> gen_column_definition ($_, $columns -> {$_})} keys %$columns) . "\n)\n";
 			
-	$self -> {db} -> do ($sql);
+	$self -> do ($sql);
 
 }
+
+################################################################################
+
+sub get_column_def {
+
+	my ($self, $column) = @_;
+	
+	return $column -> {COLUMN_DEF} if defined $column -> {COLUMN_DEF};
+	
+	return 0 if $column -> {TYPE_NAME} =~ /bit|int|float|numeric|decimal/;
+	
+	return '';
+
+}    
 
 ################################################################################
 
@@ -91,11 +147,8 @@ sub update_column {
 
 	my ($self, $name, $c_name, $existing_column, $c_definition) = @_;
 	
-	my $existing_def = $existing_column -> {COLUMN_DEF};
-	$existing_def = '' unless defined $existing_def;
-	
-	my $column_def = $c_definition -> {COLUMN_DEF};
-	$column_def = '' unless defined $column_def;
+	my $existing_def = $self -> get_column_def ($existing_column);
+	my $column_def = $self -> get_column_def ($c_definition);
 	
 	return if 
 		$existing_column -> {TYPE_NAME} eq $c_definition -> {TYPE_NAME} 
@@ -105,7 +158,7 @@ sub update_column {
 	
 	my $sql = "ALTER TABLE $name CHANGE $c_name " . $self -> gen_column_definition ($c_name, $c_definition);
 	
-	$self -> {db} -> do ($sql);
+	$self -> do ($sql);
 	
 }
 
@@ -119,8 +172,28 @@ sub insert_or_update {
 
 	my $sql = "REPLACE INTO $name (" . (join ', ', @names) . ") VALUES (" . (join ', ', map {$self -> {db} -> quote ($data -> {$_})} @names) . ')';
 
-	$self -> {db} -> do ($sql);
+	$self -> do ($sql);
 
+}
+
+################################################################################
+
+sub drop_index {
+	
+	my ($self, $table_name, $index_name) = @_;
+	
+	$self -> {db} -> do ("ALTER TABLE $table_name DROP INDEX $index_name");
+	
+}
+
+################################################################################
+
+sub create_index {
+	
+	my ($self, $table_name, $index_name, $index_def) = @_;
+	
+	$self -> {db} -> do ("ALTER TABLE $table_name ADD INDEX $index_name ($index_def)");
+	
 }
 
 1;

@@ -15,7 +15,7 @@ SKIP: {
 	ok ($db && $db -> ping (), 'Connected');
 	$db -> {RaiseError} = 1;
 	
-	my $update = DBIx::ModelUpdate -> new ($db);
+	my $update = DBIx::ModelUpdate -> new ($db, dump_to_stderr => 1);
 	ok ($update, 'Object created');
 	
 	$db -> do ('DROP TABLE IF EXISTS users');
@@ -28,6 +28,12 @@ SKIP: {
 			id_sex => {
 				TYPE_NAME    => 'int',
 				COLUMN_SIZE  => 11,
+			},
+
+			salary => {
+				TYPE_NAME    => 'decimal',
+				COLUMN_SIZE  => 10,
+				DECIMAL_DIGITS  => 2,
 			},
 
 			name => {
